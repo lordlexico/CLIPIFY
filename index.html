@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clipify - Watch & Post Videos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: black;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .video-container {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            scroll-snap-type: y mandatory;
+            overflow-y: scroll;
+        }
+
+        .post {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            scroll-snap-align: start;
+            background: #333;
+        }
+
+        .post video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .post-info {
+            position: absolute;
+            top: 10%;
+            left: 10px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .username {
+            font-weight: bold;
+        }
+
+        .caption {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .actions {
+            position: absolute;
+            bottom: 10%;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            text-align: center;
+        }
+
+        .actions i {
+            font-size: 28px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .actions span {
+            font-size: 14px;
+            color: white;
+        }
+
+        .comment-section {
+            display: none;
+            position: absolute;
+            bottom: 10%;
+            right: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 10px;
+            width: 250px;
+            max-height: 200px;
+            overflow-y: auto;
+            color: white;
+        }
+
+        .comment-section input {
+            width: 90%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .comment-section .comments {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .comment-section .no-comments {
+            color: gray;
+            text-align: center;
+        }
+
+        .share-options {
+            display: none;
+            position: absolute;
+            bottom: 15%;
+            right: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 10px;
+            width: 180px;
+            text-align: center;
+        }
+
+        .share-options button {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            background: #444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #post-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: red;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 50%;
+            font-size: 22px;
+            cursor: pointer;
+            border: none;
+        }
+
+        #file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="video-container" id="video-feed">
+        <!-- Videos will be loaded here dynamically -->
+    </div>
+
+    <div class="share-options" id="share-options">
+        <button onclick="shareOnFacebook()">Share on Facebook</button>
+        <button onclick="shareOnWhatsApp()">Share on WhatsApp</button>
+        <button onclick="copyLink()">Copy Link</button>
+    </div>
+
+    <button id="post-btn" onclick="document.getElementById('file-input').click();">
+        <i class="fas fa-plus"></i>
+    </button>
+    <input type="file" id="file-input" accept="video/*,image/*" onchange="uploadFile(event)">
+
+    <script>
+        function loadVideos() {
+            const videoFeed = document.getElementById('video-feed');
+            const postDiv = document.createElement("div");
+            postDiv.className = "post";
+
+            const videoEl = document.createElement("video");
+            videoEl.src = "video.mp4"; 
+            videoEl.controls = false;
+            videoEl.autoplay = true;
+            videoEl.loop = true;
+            videoEl.muted = false;
+
+            const postInfoDiv = document.createElement("div");
+            postInfoDiv.className = "post-info";
+            postInfoDiv.innerHTML = `<span class="username">John Doe</span>
+                                     <div class="caption">Check out this amazing video!</div>`;
+
+            const actionsDiv = document.createElement("div");
+            actionsDiv.className = "actions";
+
+            const likeBtn = document.createElement("i");
+            likeBtn.className = "fas fa-heart";
+            likeBtn.onclick = () => toggleLike(likeBtn);
+            actionsDiv.appendChild(likeBtn);
+
+            const commentBtn = document.createElement("i");
+            commentBtn.className = "fas fa-comment";
+            commentBtn.onclick = () => toggleCommentSection(postDiv);
+            actionsDiv.appendChild(commentBtn);
+
+            const shareBtn = document.createElement("i");
+            shareBtn.className = "fas fa-share";
+            shareBtn.onclick = () => toggleShareOptions();
+            actionsDiv.appendChild(shareBtn);
+
+            const commentSection = document.createElement("div");
+            commentSection.className = "comment-section";
+            commentSection.innerHTML = `
+                <input type="text" id="comment-input" placeholder="Add a comment..." onkeypress="addComment(event, this)">
+                <div class="comments">
+                    <p class="no-comments">No comments yet on this video!</p>
+                </div>
+            `;
+
+            postDiv.appendChild(videoEl);
+            postDiv.appendChild(postInfoDiv);
+            postDiv.appendChild(actionsDiv);
+            postDiv.appendChild(commentSection);
+            videoFeed.appendChild(postDiv);
+        }
+
+        function toggleLike(likeBtn) {
+            likeBtn.style.color = likeBtn.style.color === "pink" ? "white" : "pink";
+        }
+
+        function toggleCommentSection(post) {
+            const commentSection = post.querySelector(".comment-section");
+            commentSection.style.display = (commentSection.style.display === "block") ? "none" : "block";
+        }
+
+        function addComment(event, input) {
+            if (event.key === "Enter") {
+                const commentText = input.value.trim();
+                if (commentText === "") return;
+
+                const commentSection = input.nextElementSibling;
+                const noCommentsText = commentSection.querySelector(".no-comments");
+                if (noCommentsText) noCommentsText.remove();
+
+                const newComment = document.createElement("p");
+                newComment.className = "comment";
+                newComment.textContent = commentText;
+                commentSection.appendChild(newComment);
+                input.value = "";
+            }
+        }
+
+        function toggleShareOptions() {
+            const shareOptions = document.getElementById("share-options");
+            shareOptions.style.display = (shareOptions.style.display === "block") ? "none" : "block";
+        }
+
+        function shareOnFacebook() {
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${window.location.href}`, '_blank');
+        }
+
+        function shareOnWhatsApp() {
+            window.open(`https://wa.me/?text=Check out this video on Clipify! ${window.location.href}`, '_blank');
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href);
+            alert("Link copied!");
+        }
+
+        loadVideos();
+    </script>
+</body>
+</html>
